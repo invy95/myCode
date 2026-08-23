@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-# 功能：把 TalentsAI Agentic Coding×金融 申请材料渲染成可投递 docx。
-# 更新 2026-08-23：出题部分改为 4 道可验收样题（场景、I/O、测试、防投机、难度），不再只堆格式名词。
+# 功能：生成 TalentsAI Agentic Coding×金融 单文件投递材料（胜任原因 + 落盘证据 + Skill + 出题）。
+# 更新 2026-08-23：与「核心能力证明_投递版」合并；删除本机路径/附件索引，证据与摘录全部写进本文。
 
-"""Render the TalentsAI application pack from structured markdown-like sections."""
+"""Single-file TalentsAI application pack. No external path index."""
 
 from pathlib import Path
 
 from docx import Document
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -38,7 +39,7 @@ def set_run(run, size=11, bold=False, color=TEXT, italic=False):
 def tight(p, before=2, after=4):
     p.paragraph_format.space_before = Pt(before)
     p.paragraph_format.space_after = Pt(after)
-    p.paragraph_format.line_spacing = 1.15
+    p.paragraph_format.line_spacing = 1.12
 
 
 def add_bottom_border(p):
@@ -75,177 +76,350 @@ def body(doc, text, size=11):
 def bullet(doc, text, size=11):
     p = doc.add_paragraph()
     tight(p, 0, 2)
-    p.paragraph_format.left_indent = Cm(0.5)
+    p.paragraph_format.left_indent = Cm(0.45)
     set_run(p.add_run("• " + text), size)
 
 
 def kv(doc, label, text):
     p = doc.add_paragraph()
     tight(p, 1, 2)
-    p.paragraph_format.left_indent = Cm(0.4)
-    set_run(p.add_run(label + "："), 11, bold=True)
-    set_run(p.add_run(text), 11)
+    p.paragraph_format.left_indent = Cm(0.3)
+    set_run(p.add_run(label + "："), 10.5, bold=True)
+    set_run(p.add_run(text), 10.5)
+
+
+def code_block(doc, text):
+    p = doc.add_paragraph()
+    tight(p, 2, 6)
+    p.paragraph_format.left_indent = Cm(0.2)
+    set_run(p.add_run(text), 8.5, color=(40, 40, 40))
+
+
+def add_table(doc, headers, rows):
+    table = doc.add_table(rows=1 + len(rows), cols=len(headers))
+    table.style = "Table Grid"
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    for i, h in enumerate(headers):
+        cell = table.rows[0].cells[i]
+        cell.text = ""
+        p = cell.paragraphs[0]
+        tight(p, 1, 1)
+        set_run(p.add_run(h), 8.5, bold=True, color=ACCENT)
+    for r_i, row in enumerate(rows):
+        for c_i, val in enumerate(row):
+            cell = table.rows[r_i + 1].cells[c_i]
+            cell.text = ""
+            p = cell.paragraphs[0]
+            tight(p, 1, 1)
+            set_run(p.add_run(str(val)), 8)
+    doc.add_paragraph()
+
+
+PASTE = (
+    "机会：大模型训练专家 | Agentic Coding × 金融领域\n\n"
+    "我做了几年 A 股量化研究和工程落地，日常就是把一个投研问题写成能跑、能对的东西："
+    "先写清要算什么，再用 Python/Bash 做出来，最后用落盘表格验收。"
+    "这和本岗位要的「在 Docker/终端里按 instruction 完成金融编程任务，并用脚本判定通过/失败」是同一条链路。\n\n"
+    "已经跑通的两条闭环：一是盘中涨停按概念板块统计热度，约 3 秒播报新增涨停、约 1 分钟写一张分钟热度表，"
+    "涨停阈值按主板/创业板科创板/北交所/ST 区分，自 2026 年 1 月起工作日连续落盘"
+    "（2026-08-21 单日约 64435 行）。二是巨潮业绩预告采集：列表不含摘要，必须下 PDF 抽归母净利润和变动幅度，"
+    "PDF 失败再用东财接口兜底，最后做负债/现金/ROE 的价值筛选。"
+    "回测侧有一套可脱离行情平台的账户与订单模拟，用来验证进出场而不是只画净值。\n\n"
+    "出题不会做成算法题换皮。题从上面这些场景抽：涨停分板块阈值、预告和快报不能合成一条、"
+    "过滤规则必须交对照表、分钟因子必须截断时点且涨停买不进。"
+    "每道题写清输入字段、输出字段、隐藏测例，以及 Agent 硬编码或偷看未来数据时测试怎么失败。"
+    "难度按专业坑标：规则题 easy，point-in-time 和对照回测 medium，多频率对齐+不可成交 hard。\n\n"
+    "交付物按平台格式：instruction.md、本地数据包、Dockerfile、test.sh、参考解、难度和耗时。"
+    "Linux 上写过启停脚本和定时任务；Docker 按题目依赖写环境，不包装成运维。"
+    "质量标准是可复现、可落盘、可回归。证据表和 Skill 全文都在本文件里，不再另附带路径的材料。"
+)
 
 
 def build(out_path: Path) -> Path:
     doc = Document()
     for s in doc.sections:
-        s.top_margin = Cm(1.8)
-        s.bottom_margin = Cm(1.8)
-        s.left_margin = Cm(2.0)
-        s.right_margin = Cm(2.0)
+        s.top_margin = Cm(1.6)
+        s.bottom_margin = Cm(1.6)
+        s.left_margin = Cm(1.8)
+        s.right_margin = Cm(1.8)
 
-    title = doc.add_paragraph()
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    tight(title, 0, 4)
-    set_run(title.add_run("TalentsAI 机会胜任与能力证明"), 18, bold=True, color=ACCENT)
+    t = doc.add_paragraph()
+    t.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    tight(t, 0, 3)
+    set_run(t.add_run("TalentsAI 机会胜任与能力证明"), 18, bold=True, color=ACCENT)
 
-    sub = doc.add_paragraph()
-    sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    tight(sub, 0, 8)
-    set_run(sub.add_run("大模型训练专家 ｜ Agentic Coding × 金融领域（J83）"), 11, color=MUTED)
+    s = doc.add_paragraph()
+    s.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    tight(s, 0, 2)
+    set_run(s.add_run("大模型训练专家 ｜ Agentic Coding × 金融领域"), 11, color=MUTED)
 
-    meta = doc.add_paragraph()
-    meta.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    tight(meta, 0, 10)
-    set_run(meta.add_run("殷维 ｜ 华中科技大学金融硕士 ｜ yw43@foxmail.com ｜ 15671678098"), 10, color=MUTED)
+    m = doc.add_paragraph()
+    m.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    tight(m, 0, 8)
+    set_run(m.add_run("殷维 ｜ 华中科技大学金融硕士 ｜ yw43@foxmail.com ｜ 15671678098 ｜ 2026-08-23"), 10, color=MUTED)
 
-    heading(doc, "一、一句话：我能交出什么样的题")
     body(
         doc,
-        "这个岗要的不是再写一套回测曲线，而是把真实投研问题拆成 Agent 在 Docker/终端里能做完、脚本能判对错的任务。"
-        "我日常就是在做这件事的前半段：把「自然语言任务 → Python/Bash 实现 → 落盘结果 → 用规则验收」跑通。"
-        "下面四道样题都来自我自己做过的活，不是算法竞赛题改写。",
+        "单文件自包含。审核只看这一份即可：下面有可粘贴的申请说明、两条已落地闭环的证据表、"
+        "Agent Skill 全文、关键逻辑摘录、四道可验收样题。不另附脚本、表格或本机目录。",
+        size=10,
     )
 
-    heading(doc, "二、出题原则（对照平台在看的六件事）")
-    bullet(doc, "考察什么：每题只考 1–2 个专业判断，不把清洗、回测、可视化堆进同一题。")
-    bullet(doc, "输入是否合理：用脱敏、固定种子的本地文件，不要求 Agent 现场爬网，避免评测不稳定。")
-    bullet(doc, "输出是否可验证：规定文件名、字段、排序、小数位；能对 golden 文件或数值容差做断言。")
-    bullet(doc, "测试是否严谨：test.sh / pytest 同时查「结果对」和「过程没抄捷径」。")
-    bullet(doc, "会不会投机：隐藏用例、打乱股票顺序、禁止硬编码答案表；只改输出文件名过不了。")
-    bullet(doc, "是否贴近真实场景：用 A 股真实规则（涨停分板块、预告≠快报、停牌买不进），不用通用排序题换皮。")
+    heading(doc, "一、申请说明（可直接粘贴）")
+    body(doc, PASTE, size=10.5)
 
-    heading(doc, "三、四道样题（可直接扩成 instruction.md + test.sh + solve.sh）")
+    heading(doc, "二、已落地的两条闭环")
+    subhead(doc, "2.1 盘中热点板块监控")
+    bullet(doc, "做什么：交易时段识别全市场涨停，按概念板块统计「谁在炒」。约 3 秒播报新增涨停，约 1 分钟追加一张概念热度表。")
+    bullet(doc, "专业规则：主板约 10%、创业板/科创板约 20%、北交所约 30%、ST 约 5%；概念来自本地板块映射表。")
+    bullet(doc, "运维：工作日定时启动与收盘停止；用启停脚本，不手工挂进程。")
+    bullet(doc, "验收：工作日连续落盘（自约 2026-01）；2026-08-21 单日约 64435 行（分钟 × 概念）。")
+    bullet(doc, "表字段：时间、概念板块、涨停数、较上分钟、今日峰值、新增、开板。")
+
+    body(doc, "证据表 A｜2026-08-21 09:25 开盘附近（节选）", size=10)
+    add_table(
+        doc,
+        ["时间", "概念板块", "涨停数", "较上分钟", "今日峰值", "新增", "开板"],
+        [
+            ["2026-08-21 09:25:08", "储能", "1", "1", "1", "*ST威领", "-"],
+            ["2026-08-21 09:25:08", "幽门螺杆菌", "2", "2", "2", "双鹭药业, 汉森制药", "-"],
+            ["2026-08-21 09:25:08", "锂矿", "1", "1", "1", "*ST威领", "-"],
+            ["2026-08-21 09:25:08", "减肥药", "1", "1", "1", "双鹭药业", "-"],
+            ["2026-08-21 09:25:08", "智能医疗", "1", "1", "1", "双鹭药业", "-"],
+            ["2026-08-21 09:25:08", "特斯拉概念", "0", "0", "0", "-", "-"],
+            ["2026-08-21 09:25:08", "虚拟电厂", "0", "0", "0", "-", "-"],
+            ["2026-08-21 09:25:08", "算力租赁", "0", "0", "0", "-", "-"],
+        ],
+    )
+    body(doc, "证据表 B｜同日「储能」连续分钟（节选）", size=10)
+    add_table(
+        doc,
+        ["时间", "概念板块", "涨停数", "较上分钟", "今日峰值", "新增", "开板"],
+        [
+            ["2026-08-21 09:25:08", "储能", "1", "1", "1", "*ST威领", "-"],
+            ["2026-08-21 09:26:02", "储能", "1", "0", "1", "-", "-"],
+            ["2026-08-21 09:27:02", "储能", "1", "0", "1", "-", "-"],
+            ["2026-08-21 09:28:00", "储能", "1", "0", "1", "-", "-"],
+            ["2026-08-21 09:29:00", "储能", "1", "0", "1", "-", "-"],
+            ["2026-08-21 09:30:03", "储能", "1", "0", "1", "-", "-"],
+            ["2026-08-21 09:31:02", "储能", "2", "1", "2", "福华尚纬", "-"],
+            ["2026-08-21 09:32:01", "储能", "2", "0", "2", "-", "-"],
+        ],
+    )
+
+    subhead(doc, "2.2 巨潮业绩预告采集")
+    bullet(doc, "做什么：按日拉「业绩预告」公告，抽出归母净利润（万元）和变动幅度（%），再做价值筛选。")
+    bullet(doc, "为什么必须下 PDF：列表接口没有摘要，标题也常常没有增速。")
+    bullet(doc, "解析顺序（不能乱）：PDF 主路径 → 东财业绩预告接口兜底 → 仍缺则从标题推断或标类型。")
+    bullet(doc, "价值筛选摘要：排除部分板块后，看负债、现金、ROE；要求现金为正、ROE 非负，且 ROE>8% 或较上年改善。")
+    bullet(doc, "样本日期：2026-01-26、2026-01-28、2026-07-14。")
+
+    body(doc, "证据表 C｜2026-07-14 业绩预告节选", size=10)
+    add_table(
+        doc,
+        ["代码", "简称", "归母净利(万元)", "变动%", "展示", "来源", "标题"],
+        [
+            ["300118", "东方日升", "230000", "24.33", "+24.33%", "pdf+em", "2025年度业绩预告"],
+            ["302132", "中航成飞", "340000", "2927.37", "+2927.37%", "pdf", "2025年度业绩预告"],
+            ["300862", "蓝盾光电", "7000", "1179.36", "+1179.36%", "pdf", "2025年度业绩预告"],
+            ["300971", "博亚精工", "8000", "82.68", "+82.68%", "pdf", "2025年度业绩预告"],
+            ["300323", "华灿光电", "-45000", "26.37", "+26.37%", "eastmoney", "2025年度业绩预告"],
+            ["300107", "建新股份", "-2450", "-226.52", "-226.51%", "eastmoney", "2025年度业绩预告"],
+            ["301110", "青木科技", "11770.18", "30.00", "+30.00%", "pdf", "2025年度业绩预告"],
+            ["300672", "国科微", "-21500", "-321.30", "-321.30%", "eastmoney", "2025年度业绩预告"],
+            ["300061", "旗天科技", "9500", "55.65", "+55.65%", "pdf", "2025年度业绩预告"],
+            ["300497", "富祥药业", "-4800", "82.36", "+82.36%", "eastmoney", "2025年度业绩预告"],
+        ],
+    )
+
+    subhead(doc, "2.3 回测与监控习惯（不另附工程目录）")
+    bullet(doc, "回测引擎：自管账户（现金、持仓、当日可卖、成交均价）和成交记录，用来模拟下单，而不是只算一条收益率。")
+    bullet(doc, "数据：日线/分钟从本地文件读，交易日历和复权因子缓存；不把「现场联网拉数」写进评测题。")
+    bullet(doc, "盘中监控：按板块股票池跟踪均线类信号，多周期并行拉 K 线，用于复盘而不是当低频因子库。")
+    bullet(doc, "验证方式：对照实验和出场逻辑检查，输出表格字段，而不是只交曲线图。")
+
+    heading(doc, "三、关键逻辑摘录（去路径，只留判定）")
+    body(doc, "涨停阈值（按代码前缀区分板块；ST 按证券简称判断，不按代码字符串）：", size=10)
+    code_block(
+        doc,
+        "def get_limit_up_threshold(pre_close, stock_code, stock_name):\n"
+        "    # 科创板 688/689、创业板 300 → 20%\n"
+        "    if stock_code.startswith(('688', '689', '300')):\n"
+        "        return pre_close * 1.20\n"
+        "    # 北交所 8/4 开头 → 30%\n"
+        "    if stock_code.startswith(('8', '4')):\n"
+        "        return pre_close * 1.30\n"
+        "    # ST / *ST → 5%\n"
+        "    if 'ST' in (stock_name or '').upper():\n"
+        "        return pre_close * 1.05\n"
+        "    # 主板 → 10%\n"
+        "    return pre_close * 1.10",
+    )
     body(
         doc,
-        "每道题下面按「场景 / 给 Agent 的约束 / 输入输出 / 测试与防投机 / 难度」写。正式交付时再拆成独立文件；这里先证明我知道题该长什么样。",
+        "说明：线上脚本里用过「接近涨停」的 19.5%/9.5% 容差，方便盘中先报警。"
+        "出题和验收用整阈值（10/20/30/5），卡在 19.99% 的样本必须判「未涨停」，避免 Agent 用宽松容差蒙混。",
+        size=10,
     )
+    body(doc, "业绩预告解析优先级（乱序即错）：", size=10)
+    bullet(doc, "1. PDF 表格抽取归母净利润、变动幅度。")
+    bullet(doc, "2. PDF 失败：东财业绩预告接口补数字，来源记 eastmoney。")
+    bullet(doc, "3. 仍缺增速：标题推断或标记预告类型，禁止用 0 填缺失。")
+    bullet(doc, "预告与快报并存时保留两行，用类型字段区分，禁止合成一条。日期用公告披露日。")
 
-    subhead(doc, "样题 1｜A 股涨停判定（easy，约 20–30 分钟）")
-    kv(doc, "场景来源", "盘中涨停监控里每天都要先判定「今天这只票算不算涨停」。规则按板块不同，写错阈值整条链路废掉。")
-    kv(doc, "考察点", "读懂 A 股交易规则，按证券代码/名称/板块字段选对阈值，输出布尔结果。")
-    kv(
-        doc,
-        "instruction 必须写清",
-        "主板/中小板 10%；创业板、科创板 20%；北交所 30%；ST/*ST 5%。比较用「当日涨跌幅是否达到该阈值」，复权口径写死为不复权收盘价相对前收。四舍五入到百分号后两位后再比。",
-    )
-    kv(doc, "输入", "quotes.csv：code, name, board, is_st, pre_close, close。至少含上述四类板块和 ST 样本。")
-    kv(doc, "输出", "limit_up.csv：code, limit_up(0/1)，按 code 升序。")
-    kv(
-        doc,
-        "测试与防投机",
-        "断言行数、排序、每类板块至少 1 个正例和 1 个负例。另给隐藏文件 quotes_hidden.csv，Agent 看不到答案。卡在阈值上的票（如创业板刚好 19.99%）必须判 0，防止 Agent 用「涨幅>9.5 就算涨停」蒙混。",
-    )
-    kv(doc, "难度标注", "easy。专业坑在规则，代码量不大。")
-
-    subhead(doc, "样题 2｜业绩预告与快报拆开入库（medium，约 45–70 分钟）")
-    kv(doc, "场景来源", "我做过全市场财报/预告采集。预告和快报数字不能混；公告时间戳错了就会把未来信息写进当天股票池。")
-    kv(doc, "考察点", "区分公告类型；抽取归母净利润及变动幅度；用公告日而不是报告期做 point-in-time。")
-    kv(
-        doc,
-        "instruction 必须写清",
-        "输入是公告列表（已下载的本地 HTML/文本，不爬外网）。类型只允许 forecast / flash / regular 三值。同一公司同一报告期同时有预告和快报时，两条都保留，用 type 区分，禁止合成一条。变动幅度缺省写 NA，禁止用 0 填。announce_date 取披露日。",
-    )
-    kv(doc, "输入", "announcements/ 下若干文本；schema.md 说明字段中文别名（归属于母公司股东的净利润 / 净利润同比）。")
-    kv(doc, "输出", "earnings.csv：code, report_period, type, announce_date, net_profit_parent, yoy_change。")
-    kv(
-        doc,
-        "测试与防投机",
-        "golden 表逐字段比对；故意放「预告数字写在快报标题下」的脏样本，混用类型即失败。隐藏 2 篇非常规标题。禁止 Agent 只按文件名猜类型。",
-    )
-    kv(doc, "难度标注", "medium。坑在中文财务表述和 point-in-time，不在正则炫技。")
-
-    subhead(doc, "样题 3｜强势股位置过滤 + 对照回测（medium，约 60–90 分钟）")
-    kv(doc, "场景来源", "现任岗位验证过的规则：收盘价/前 20 日最低价 < 130%，用来去掉已经炒高的票，对照后最大单笔亏损从约 -27% 收到约 -17%。")
-    kv(doc, "考察点", "把一条可执行的过滤规则写进回测，并输出对照表，而不是只交一条净值。")
-    kv(
-        doc,
-        "instruction 必须写清",
-        "基准组：满足放量条件即买入。实验组：再加 close / min(low, 20) < 1.3。收益用开仓到平仓的区间收益，不是盯市净值。必须输出两组的交易笔数、胜率、最大单笔亏损。20 日窗口不含当日。停牌日不计入窗口。",
-    )
-    kv(doc, "输入", "daily_bars.parquet：code, date, open, high, low, close, volume, tradable。信号日列表 signals.csv。")
-    kv(doc, "输出", "compare.json：baseline 与 filtered 两组指标；trades_filtered.csv 便于抽查。")
-    kv(
-        doc,
-        "测试与防投机",
-        "用我算过的脱敏子集做 golden。断言 filtered.max_single_loss > baseline.max_single_loss（亏损是负数，过滤后应更大，即亏得更少）。若 Agent 只改了输出文案、没改成交明细，trades 对不上则失败。禁止读取任何「标准答案收益」文件。",
-    )
-    kv(doc, "难度标注", "medium。考的是规则定义和对照实验，不考组合优化器。")
-
-    subhead(doc, "样题 4｜分钟板块热度合成日线回测（hard，约 2–3 小时）")
-    kv(doc, "场景来源", "掘金短线多头：分钟级板块强度/拥挤度叠日线量价。真实坑是未来函数、涨跌停买不进、停牌缺 bar。")
-    kv(doc, "考察点", "多频率对齐、信号时点只用当时已发生的分钟、回测扣交易成本并处理不可成交。")
-    kv(
-        doc,
-        "instruction 必须写清",
-        "分钟因子在 14:30 截断，不得使用 14:30 之后的 bar。板块成分用当日开盘可交易名单，不得用收盘后才公布的成分。买入若信号日涨停则成交量为 0。卖出若跌停则次日继续挂。成本：双边佣金+印花税，费率写死在 config.yaml。输出日收益、最大回撤、换手，以及 future_function_check=pass。",
-    )
-    kv(doc, "输入", "minute_bars/、daily_bars/、board_members.csv、config.yaml。全部本地文件。")
-    kv(doc, "输出", "metrics.json；nav.csv；audit.log（记录每笔因涨跌停未成交的次数）。")
-    kv(
-        doc,
-        "测试与防投机",
-        "1）把某日 14:45 的分钟值改成极端数，若结果跟着变，判定用了未来函数。2）把信号日收盘改成涨停，成交必须为 0。3）metrics 与 golden 相对误差 < 1e-6。4）禁止联网。",
-    )
-    kv(doc, "难度标注", "hard。专业深度在约束，不在模型花哨。我不会出 sklearn/xgboost 选股题，那不是我的工作栈。")
-
-    heading(doc, "四、一套题的交付清单（我对齐平台格式）")
-    bullet(doc, "instruction.md：目标、数据字典、输出 schema、边界、禁止事项（不联网、不改测试）。")
-    bullet(doc, "data/：脱敏输入 + 隐藏测例（不进 Agent 可见目录）。")
-    bullet(doc, "Dockerfile：python:3.11-slim + pandas/numpy；能 pip install -r requirements.txt。")
-    bullet(doc, "test.sh：调用 pytest，非 0 退出即失败。")
-    bullet(doc, "solve.sh：我自己的参考解，用来证明题可解、测试没写反。")
-    bullet(doc, "meta.json：easy/medium/hard、预估耗时、考察知识点（涨停规则 / point-in-time / 对照回测 / 未来函数）。")
+    heading(doc, "四、Agent Skill 全文（已去掉本机路径）")
     body(
         doc,
-        "工程能力边界：Linux 上部署过投研脚本、定时任务和日志，能写 Bash 启停；Dockerfile 按任务依赖写，不包装成「长期维护过生产镜像」。测试习惯是断言+落盘对照，正式交付按平台要求改成 pytest。",
+        "这两份是我给 Agent 用的说明书：目标、步骤、验收字段写死，所以能稳定复跑。"
+        "投递不需要再打开任何 Skill 文件，全文如下。",
+        size=10,
     )
 
-    heading(doc, "五、机会胜任原因（可直接粘贴到申请表）")
-    body(doc, _paste_reason())
+    subhead(doc, "4.1 Skill：盘中热点板块监控")
+    code_block(
+        doc,
+        "name: 盘中热点板块监控\n"
+        "适用：用户提到盘中热点、概念涨停、涨停监控、启停分钟热度表。\n\n"
+        "目标：交易时段监控全市场涨停，按概念板块输出热度；落盘分钟 CSV 供复盘。\n\n"
+        "行为要点\n"
+        "- 约 3 秒检测新增涨停；约 1 分钟输出概念统计并追加当日热度表。\n"
+        "- 屏幕显示前 30 个有涨停的概念；落盘表含全部概念（含 0 涨停）。\n"
+        "- 交易时段：09:25–11:30、13:00–15:00；周末不跑。\n"
+        "- 工作日开盘前启动、收盘后停止。\n"
+        "- 涨停阈值按主板 / 创业板科创板 / 北交所 / ST 区分。\n\n"
+        "验收\n"
+        "- 进程在交易时段存活；当日热度表持续追加。\n"
+        "- 表头固定：时间、概念板块、涨停数、较上分钟、今日峰值、新增、开板。\n"
+        "- 分析时按时间切片，对涨停数降序取 Top；同时看较上分钟、峰值、新增、开板。",
+    )
 
-    heading(doc, "六、证明材料建议")
-    bullet(doc, "本文件：出题样例 + 胜任原因。")
-    bullet(doc, "脱敏回测/对照表 PDF（样题 3 的真实出处）。")
-    bullet(doc, "Linux 定时任务或脚本目录截图（证明能在终端闭环）。")
-    bullet(doc, "学历与工作履历：华中科技大学金融硕士；量化研究相关工作自 2021 年起。")
-    body(doc, "不附带公司内部未脱敏数据、客户信息或未公开业绩。个人账户收益不作为证明。", size=10)
+    subhead(doc, "4.2 Skill：巨潮净利润采集")
+    code_block(
+        doc,
+        "name: 巨潮净利润采集\n"
+        "适用：用户提到巨潮、业绩预告、归母净利润、变动幅度、业绩快报。\n\n"
+        "目标：按指定日期拉取业绩预告，提取归母净利润（万元）与变动幅度（%），"
+        "导出表格后再做财务价值筛选。\n\n"
+        "执行步骤\n"
+        "1. 依赖：requests、pandas；东财兜底可选。\n"
+        "2. 写入要跑的日期列表后执行采集脚本。\n"
+        "3. 检查当日目录是否同时出现「业绩预告表」和「业绩价值表」。\n\n"
+        "解析优先级（勿改乱序）：PDF → 东财接口 → 标题推断。\n\n"
+        "业绩预告表字段：公告ID、股票代码、股票简称、公告类型、公告标题、公告时间、"
+        "公告pdf、归母净利润（万元）、归母净利润变动幅度（%）、变动幅度展示、"
+        "预告类型、业绩变动原因、数据来源。\n\n"
+        "价值筛选摘要：负债可控、现金为正、ROE 非负，且 ROE>8% 或较上年改善。",
+    )
 
-    footer = doc.add_paragraph()
-    tight(footer, 14, 0)
-    footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    set_run(footer.add_run("仅用于 TalentsAI J83 申请 ｜ 2026年8月"), 9, color=MUTED)
+    heading(doc, "五、四道样题（可扩成平台任务，材料都在题面里）")
+    body(
+        doc,
+        "对照平台在看的六件事：考察点、输入是否合理、输出能否自动判、测试严不严、Agent 会不会投机、是否真场景。"
+        "输入一律用题包内的脱敏文件，不要求联网，不指向任何本机目录。",
+        size=10,
+    )
+
+    subhead(doc, "样题 1｜A 股涨停判定（easy，20–30 分钟）")
+    kv(doc, "场景", "盘中监控的第一步：今天这只票算不算涨停。阈值写错，后面热度表全废。")
+    kv(doc, "考察", "按板块选对阈值，输出 0/1。")
+    kv(
+        doc,
+        "instruction 写死",
+        "主板 10%；创业板/科创板 20%；北交所 30%；ST/*ST 5%。用当日不复权收盘相对前收，先四舍五入到百分号后两位再比。",
+    )
+    kv(doc, "输入（写在题包内）", "quotes.csv：code,name,board,is_st,pre_close,close。必须覆盖四类板块和 ST。")
+    kv(doc, "输出", "limit_up.csv：code,limit_up，按 code 升序。")
+    kv(
+        doc,
+        "测试",
+        "查行数、排序、每类板块至少一个正例和一个负例。隐藏测例 Agent 不可见。创业板 19.99% 必须为 0。",
+    )
+
+    subhead(doc, "样题 2｜预告与快报拆开入库（medium，45–70 分钟）")
+    kv(doc, "场景", "巨潮采集的真实坑：预告和快报数字不能合成一条；必须用公告日，不能用报告期。")
+    kv(doc, "考察", "类型、归母净利、变动幅度、point-in-time。")
+    kv(
+        doc,
+        "instruction 写死",
+        "类型只允许 forecast / flash / regular。同一公司同一报告期两条都留。缺失变动幅度写 NA，禁止填 0。announce_date 取披露日。不联网。",
+    )
+    kv(doc, "输入", "announcements/ 下若干本地文本 + 字段中文别名说明。")
+    kv(doc, "输出", "earnings.csv：code,report_period,type,announce_date,net_profit_parent,yoy_change。")
+    kv(doc, "测试", "与 golden 逐字段比。故意放「预告数字写在快报标题下」的脏样本。禁止按文件名猜类型。")
+
+    subhead(doc, "样题 3｜位置过滤对照回测（medium，60–90 分钟）")
+    kv(doc, "场景", "现任验证过的规则：收盘价/前 20 日最低价 < 1.3，用来去掉已经炒高的票。对照后最大单笔亏损从约 -27% 收到约 -17%。")
+    kv(doc, "考察", "规则进回测，必须交对照表。")
+    kv(
+        doc,
+        "instruction 写死",
+        "基准组只看放量；实验组再加 close/min(low,20)<1.3。收益用开仓到平仓，不是盯市净值。20 日窗口不含当日，停牌不计入。",
+    )
+    kv(doc, "输入", "daily_bars 表（code,date,open,high,low,close,volume,tradable）+ signals 表。")
+    kv(doc, "输出", "compare.json（两组笔数、胜率、最大单笔亏损）+ trades_filtered.csv。")
+    kv(doc, "测试", "过滤后最大单笔亏损应好于基准（亏损为负则数值更大）。只改文案、成交明细不变则失败。")
+
+    subhead(doc, "样题 4｜分钟热度合成日线回测（hard，2–3 小时）")
+    kv(doc, "场景", "短线多头：分钟板块强度叠日线量价。坑是未来函数和涨跌停成交不了。")
+    kv(doc, "考察", "多频率对齐、时点截断、不可成交、成本。")
+    kv(
+        doc,
+        "instruction 写死",
+        "分钟因子 14:30 截断。板块成分用当日可交易名单。信号日涨停则买量为 0；跌停则卖不出、次日再挂。费率写在 config 里。",
+    )
+    kv(doc, "输入", "分钟行情、日线、板块成分、config。全部在题包内。")
+    kv(doc, "输出", "metrics.json、nav.csv、未成交次数审计。")
+    kv(doc, "测试", "把 14:45 改成极端值，结果变了就是未来函数。信号日改成涨停，成交必须为 0。禁止联网。")
+    body(doc, "不出机器学习选股题，那不是我的工作栈。", size=10)
+
+    heading(doc, "六、平台交付物（仍写在本题包内，不指向外部文件）")
+    add_table(
+        doc,
+        ["文件", "写什么"],
+        [
+            ["instruction.md", "目标、字段字典、输出 schema、边界、禁止联网和改测试"],
+            ["data/", "脱敏输入 + 隐藏测例（Agent 不可见）"],
+            ["Dockerfile", "Python + pandas/numpy，按 requirements 安装"],
+            ["test.sh", "调用断言；非 0 退出即失败"],
+            ["solve.sh", "参考解，证明题可解、测试没写反"],
+            ["meta.json", "easy/medium/hard、预估耗时、知识点"],
+        ],
+    )
+    body(
+        doc,
+        "工程边界：Linux 终端、Bash 启停、定时任务和日志用过；Dockerfile 按题写，不声称长期维护生产镜像。"
+        "本机测试习惯是对落盘表做列、行数、关键股票、数值范围断言，正式交付改成平台要求的 pytest。",
+        size=10,
+    )
+
+    heading(doc, "七、本文用到的全部材料（不再外挂）")
+    add_table(
+        doc,
+        ["材料", "在本文哪里", "说明"],
+        [
+            ["申请说明", "第一节", "可整段粘贴到申请表"],
+            ["涨停热度证据", "表 A、表 B", "2026-08-21 真实落盘节选"],
+            ["业绩预告证据", "表 C", "2026-07-14 字段节选"],
+            ["涨停判定逻辑", "第三节摘录", "按板块阈值；出题用整阈值"],
+            ["预告解析顺序", "第三节条目", "PDF → 东财 → 标题"],
+            ["两条 Skill 全文", "第四节", "已去掉目录和启停命令地址"],
+            ["四道样题", "第五节", "输入输出和测试都写在题面"],
+            ["交付清单", "第六节", "平台文件角色，不是本机路径"],
+        ],
+    )
+    body(
+        doc,
+        "不附带：本机目录、Skill 原文件、原始 CSV/Excel、未脱敏公告 PDF、个人账户收益、公司内部未公开数据。",
+        size=10,
+    )
+
+    foot = doc.add_paragraph()
+    tight(foot, 12, 0)
+    foot.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    set_run(foot.add_run("仅用于 TalentsAI 申请 ｜ 单文件投递 ｜ 2026年8月"), 9, color=MUTED)
 
     doc.save(out_path)
     return out_path
-
-
-def _paste_reason() -> str:
-    return (
-        "机会：大模型训练专家 | Agentic Coding × 金融领域\n\n"
-        "我做了几年 A 股量化研究和工程落地，日常就是把一个投研问题写成能跑、能对的东西："
-        "先写清要算什么，再用 Python/Bash 做出来，最后用文件和规则验收。这和本岗位要的"
-        "「在 Docker/终端里按 instruction 完成金融编程任务，并用脚本判定通过/失败」是同一条链路。\n\n"
-        "出题上，我不会出成算法题换皮。题从自己做过的场景里抽：A 股涨停要按主板/创业板科创板/北交所/ST 分阈值；"
-        "业绩预告和快报不能合成一条，日期必须用公告日；短线回测要写清过滤规则，并输出对照表而不是一条曲线；"
-        "分钟因子必须截断时点，涨停买不进、跌停卖不出。每道题我会写明输入文件、输出字段、隐藏测例，以及 Agent 想硬编码或偷看未来数据时怎么让测试失败。"
-        "难度按专业坑来标：规则题标 easy，point-in-time 和对照回测标 medium，多频率对齐+不可成交标 hard。\n\n"
-        "交付物按平台格式准备：instruction.md、本地数据包、Dockerfile、test.sh/pytest、solve.sh、难度和耗时。"
-        "Linux 终端、定时任务和日志我在现岗用过；Docker 按任务写环境即可，不把自己说成运维。\n\n"
-        "质量上我认「可复现、可落盘、可回归」：本机有连续多月的涨停概念分钟表和多日业绩预告表，足够拿来做 golden。"
-        "愿意按平台质检标准稳定交金融 Agentic Coding 题。"
-    )
 
 
 if __name__ == "__main__":
