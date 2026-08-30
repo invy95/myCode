@@ -1,5 +1,5 @@
 # 功能：把殷维 BOSS 增补简历渲染成可投递的 docx。
-# 更新：2026-08-30：按 11 号 PDF 时间线 + 正知/AI 投研增补生成一页半中文简历。
+# 更新：2026-08-30：按「AI产品经理（交易创新）」JD 改意向和表述，不改职位名。
 
 """读取结构化段落，输出 resume/殷维_BOSS增补/殷维_简历_BOSS增补.docx。"""
 
@@ -75,7 +75,7 @@ def main():
     sub = doc.add_paragraph()
     sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
     sub.paragraph_format.space_after = Pt(1)
-    r = sub.add_run("量化研究  /  AI投研应用  |  华中科技大学 · 金融硕士")
+    r = sub.add_run("AI产品经理（交易创新）  |  量化研究背景  |  华中科技大学 · 金融硕士")
     set_run_font(r, size=10.5, bold=True)
 
     contact = doc.add_paragraph()
@@ -90,15 +90,15 @@ def main():
     intent.paragraph_format.space_after = Pt(2)
     r = intent.add_run("求职意向：")
     set_run_font(r, size=10.5, bold=True)
-    r = intent.add_run("量化研究 / AI投研应用（数据采集与校验、投研工作流、策略回测）")
+    r = intent.add_run("AI产品经理（交易创新方向）｜在交易场景里做 AI 落地与小步验证")
     set_run_font(r, size=10.5)
 
     add_heading_bar(doc, "核心匹配")
     for line in [
-        "金融硕士，量化研究经历覆盖数据清洗、因子/策略回测、财报与公告采集；能讲清回测口径和失效边界。",
-        "现职从 0 搭建部门 AI 投研流程：日报工作流、知识库对接、盘中信号推送、Linux 定时任务。",
-        "用 Cursor / Claude / MCP 把投研步骤做成可重复 Skill（采集→校验→失败换源），不是只会对话。",
-        "Xpert 金融 Skill 评测、TalentsAI Agentic Coding × 金融已过审。",
+        "懂看盘交易者要什么：短线多头、分钟级板块、盘中放量扫描；给的是分时段盘面要点，不是长研报。",
+        "把模糊意图收成带约束的动作：如「强势股」加上收盘价/前20日最低价<130% 过滤，再对照回测，不让模型直接下单。",
+        "清楚大模型边界：公告采集做成步骤→校验→失败换源；不把模型输出当成成交指令。",
+        "从 0 到 1、小步验证：正知从选型做到推送上线；策略改动先看对照回测再决定是否继续。",
     ]:
         p = doc.add_paragraph(style="List Bullet")
         p.paragraph_format.space_before = Pt(0)
@@ -112,9 +112,9 @@ def main():
         "湖北正知资产管理有限公司（私募，中基协 P1007881） | AI投研 / 量化研究",
         "2026.06 – 至今",
         [
-            "部门 AI 投研从 0 搭建：对比 WorkBuddy 与 Coze、配置工作空间；部署投研智能体并接通微信/飞书。",
-            "Linux 部署脚本与定时任务；日报工作流多人共用、企微推送与自动归档；乐享知识库对接 Coze。",
-            "盘中放量扫描与股票池多时段推送；强势股策略加「收盘价/前20日最低价<130%」过滤，对照回测后最大单笔亏损约 -27% 降至约 -17%。",
+            "交易侧 AI 从 0 探索：对比 WorkBuddy / Coze，部署投研智能体并接到微信、飞书，先打通「能用」再迭代。",
+            "给看盘同事做结构化盘面：盘中放量扫描、股票池分时段推送（上午/午盘/下午/收盘），减少刷屏找信号。",
+            "「强势股放量」收成带风控过滤的规则，对照回测后最大单笔亏损约 -27% 降至约 -17%；写明低波动、下跌市信号变差。",
         ],
     )
     add_job(
@@ -122,8 +122,8 @@ def main():
         "量化研究工作室 | 独立研究员",
         "2024.03 – 2026.04",
         [
-            "结合宏观与行业框架研究热点赛道轮动，为策略定调提供参考；搭建财务选股模型，按季度更新核心股票池。",
-            "建设全市场财报采集与业绩预告/快报爬虫；结合短线指标完善买卖点逻辑；日常用 Claude、Cursor、MCP 提效。",
+            "面向短线交易：赛道轮动定调、财务选股池、短线买卖点；自己看盘执行并复盘。",
+            "财报与业绩预告爬虫，把「这公司出事没」变成及时可查的数据；用 Claude / Cursor / MCP 拆任务并自己验数。",
         ],
     )
     add_job(
@@ -147,7 +147,7 @@ def main():
         "深圳引力波量化科技有限公司 | 量化研究员",
         "2020.08 – 2021.12",
         [
-            "交易数据获取，用 Pandas、Numpy、Talib 清洗与分析；参与套利、做市等策略开发与日常维护。",
+            "交易数据清洗（Pandas / Numpy / Talib）；参与套利、做市策略，接触价差、持仓和成交质量。",
         ],
     )
     add_job(
@@ -162,27 +162,26 @@ def main():
     add_heading_bar(doc, "项目经历")
     add_job(
         doc,
-        "AI 投研工作流与公告采集 Agent",
+        "交易辅助：盘中信号 + 带过滤的策略验证",
         "2026.06 – 至今",
         [
-            "日报工作流技能化、知识库对接、盘中信号推送；Linux 部署与定时任务。",
-            "巨潮公告采集：固定步骤→校验→失败换源。LangGraph demo：github.com/invy95/myCode（langgraph-announcement-agent 分支）。",
+            "盘中多时段推送，把高频盘面收成可执行要点；强势股规则带风控过滤，用对照回测做低成本验证。",
         ],
     )
     add_job(
         doc,
-        "股票短线多头（二级市场研究）",
-        "2024.03 – 至今",
+        "公告采集 Agent（任务 → 可校验步骤）",
+        "2026.06 – 至今",
         [
-            "赛道研究、财报采集、业绩预告爬虫。个人账户：2025 年资金加权年化约 60%，2026 年约 40%（与 11 号简历一致）。",
+            "把「盯公告/净利润」拆成采集、校验、失败换源。LangGraph demo：github.com/invy95/myCode（langgraph-announcement-agent）。",
         ],
     )
     add_job(
         doc,
-        "股票短线多头（掘金）",
+        "股票短线多头（掘金 / 个人跟踪）",
         "2022.07 – 至今",
         [
-            "分钟级板块因子 + 日线量价择时选股；实盘版接入掘金日更数据。样本内：年化 17.14%，最大回撤 2%，夏普 3.4。",
+            "分钟板块 + 日线量价；掘金实盘接日更。样本内年化 17.14%，回撤 2%，夏普 3.4。个人账户 2025 年资金加权年化约 60%，2026 年约 40%。",
         ],
     )
     add_job(
@@ -214,10 +213,9 @@ def main():
 
     add_heading_bar(doc, "技能证书")
     for line in [
-        "数据：Python（Pandas / Numpy / Talib）、Stata、MATLAB、Wind、Excel。",
-        "工程：Linux、脚本部署、cron、日志；聚宽、掘金。",
-        "AI：Claude、Cursor、MCP、Coze；能把投研步骤做成 Skill（校验+换源）。",
-        "近期：Xpert 金融 Skill 评测已过审；TalentsAI Agentic Coding × 金融已过审。",
+        "交易与数据：Python（Pandas / Numpy / Talib）、掘金、聚宽、Wind、Excel；短线看盘与回测。",
+        "AI：Claude、Cursor、MCP、Coze；能把交易任务拆成步骤并校验，知道模型不能直接当交易员。",
+        "近期：Xpert 金融 Skill 评测、TalentsAI Agentic Coding × 金融已过审。",
         "证书：证券 / 基金 / 银行从业、计算机二级；英语六级 558。",
     ]:
         p = doc.add_paragraph(style="List Bullet")
