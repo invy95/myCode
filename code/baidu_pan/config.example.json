@@ -1,0 +1,7 @@
+{
+  "app_id": "替换为控制台 AppId",
+  "app_key": "替换为控制台 AppKey",
+  "secret_key": "替换为控制台 SecretKey",
+  "app_name": "取数助手",
+  "redirect_uri": "oob"
+}
