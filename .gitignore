@@ -1,0 +1,8 @@
+# 百度网盘取数本地密钥，禁止入库
+code/baidu_pan/config.json
+code/baidu_pan/token.json
+code/baidu_pan/.secrets/
+*.local.json
+.env
+__pycache__/
+*.pyc
