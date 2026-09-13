@@ -1,6 +1,7 @@
 # 功能：按本人上传的中文简历《殷维简历_15671678098.docx》生成英文版。
 # 更新：2026-09-13：全文英译；个人作品集网址与中文稿一致。
 # 更新：2026-09-13：金融投研 Skills 改为只含两条 Skill 的干净文件，去掉 TalentsAI 申请包装。
+# 更新：2026-09-13：作品集改指向仅含两份 Skill 的公开分支，避免点开看到仓库其它文件。
 
 """输出 YinWei_Resume_EN.docx。结构与中文稿一致，目标尽量两页。"""
 
@@ -26,7 +27,7 @@ FONT = "Calibri"
 PORTFOLIO = [
     (
         "Financial investment-research Skills: ",
-        "https://github.com/invy95/myCode/raw/cursor/skills-only-6afc/resume/skills/Finance_Research_Skills.docx",
+        "https://github.com/invy95/myCode/raw/cursor/skills-public-6afc/Finance_Research_Skills.docx",
     ),
     (
         "Breathing Bubble meditation desktop widget: ",
